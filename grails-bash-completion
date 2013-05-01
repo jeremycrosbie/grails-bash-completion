@@ -1,0 +1,43 @@
+#
+# Copyright (c) 2013 Jeremy Michael Crosbie.
+#
+
+_grails() {
+		local cur prev opts targets envs envtest
+    COMPREPLY=()
+		_get_comp_words_by_ref cur prev
+
+    targets="add-proxy alias bootstrap bug-report clean clear-proxy compile console create-app"
+		targets="$targets create-controller create-domain-class create-filters create-hibernate-cfg-xml"
+		targets="$targets create-integration-test create-multi-project-build create-plugin create-pom"
+		targets="$targets create-scaffold-controller create-script create-service create-tag-lib"
+		targets="$targets create-unit-test dependency-report doc generate-all generate-controller"
+		targets="$targets generate-views help init install-dependency install-plugin install-templates"
+		targets="$targets integrate-with interactive list-plugin-updates list-plugins migrate-docs"
+		targets="$targets package package-plugin plugin-info refresh-dependencies remove-proxy"
+		targets="$targets run-app run-script run-war schema-export set-proxy set-version shell"
+		targets="$targets stats stop-app test-app uninstall-plugin upgrade war wrapper"
+		opts="-verbose -plain-output -refresh-dependencies -reloading -stacktrace -offline -version -non-interactive"
+		shopt -s extglob
+		envs="dev test prod" # TODO parse Config to find all environments
+		envtest="+(dev|test|prod)"
+		
+
+    if [[ ${cur} == -* ]] ; then
+        COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
+        return 0
+		else
+				case "${prev}" in
+						$envs)
+								COMPREPLY=($(compgen -W "${opts} ${targets}" -- ${cur}))
+								;;
+						-*)
+								COMPREPLY=($(compgen -W "${targets}" -- ${cur}))
+								;;
+						*)
+								COMPREPLY=($(compgen -W "${envs} ${opts} ${targets}" -- ${cur}))
+								;;
+				esac
+		fi
+} &&
+complete -F _grails grails && echo "Got grails bash"
