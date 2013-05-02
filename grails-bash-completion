@@ -2,33 +2,51 @@
 # Copyright (c) 2013 Jeremy Michael Crosbie.
 #
 
+_plugin_scripts() {
+		local extras e tmp search_dirs
+		[ -d $HOME/.grails/scripts ] && search_dirs="$search_dirs $HOME/.grails/scripts"
+		[ -d ./plugins ] && search_dirs="$search_dirs ./plugins"
+		[ -d $GRAILS_HOME/scripts ] && search_dirs="$search_dirs $GRAILS_HOME/scripts"
+
+		if [ -e grails-app ]; then
+				extras=$(find $search_dirs -regex '.*/scripts/[A-Za-a].*\.groovy' -exec basename {} \; | cut -d . -f 1)
+		fi
+
+		extras=$(echo $extras | sed -e 's/\([A-Z]\)/-\1/g' -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' -e 's/^-//' -e 's/\([^A-Za-z0-9]\)-/\1/g' -e 's/_//g')
+
+		EXTRAS="$EXTRAS $extras"
+}
+
+#
+# If this is a plugin then see if the release plugin is being used and add
+# known targets.  Not the greatest but the best we can do right now
+#
+_detect_plugin() {
+		if [ -f ./grails-app/conf/BuildConfig.groovy ]; then
+				grep -q ':release:' ./grails-app/conf/BuildConfig.groovy &&	EXTRAS="$EXTRAS publish-plugin generate-pom maven-deploy maven-install"
+		fi
+}
+
 _grails() {
-		local cur prev opts targets envs envtest
+		local cur prev opts targets envs
+		EXTRAS=
     COMPREPLY=()
 		_get_comp_words_by_ref cur prev
 
-    targets="add-proxy alias bootstrap bug-report clean clear-proxy compile console create-app"
-		targets="$targets create-controller create-domain-class create-filters create-hibernate-cfg-xml"
-		targets="$targets create-integration-test create-multi-project-build create-plugin create-pom"
-		targets="$targets create-scaffold-controller create-script create-service create-tag-lib"
-		targets="$targets create-unit-test dependency-report doc generate-all generate-controller"
-		targets="$targets generate-views help init install-dependency install-plugin install-templates"
-		targets="$targets integrate-with interactive list-plugin-updates list-plugins migrate-docs"
-		targets="$targets package package-plugin plugin-info refresh-dependencies remove-proxy"
-		targets="$targets run-app run-script run-war schema-export set-proxy set-version shell"
-		targets="$targets stats stop-app test-app uninstall-plugin upgrade war wrapper"
 		opts="-verbose -plain-output -refresh-dependencies -reloading -stacktrace -offline -version -non-interactive"
-		shopt -s extglob
-		envs="dev test prod" # TODO parse Config to find all environments
-		envtest="+(dev|test|prod)"
-		
+
+		_plugin_scripts
+		_detect_plugin
+
+		targets="$targets $EXTRAS"
+		envs="dev prod test"
 
     if [[ ${cur} == -* ]] ; then
         COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
         return 0
 		else
 				case "${prev}" in
-						$envs)
+						dev|prod|test)
 								COMPREPLY=($(compgen -W "${opts} ${targets}" -- ${cur}))
 								;;
 						-*)
@@ -40,4 +58,4 @@ _grails() {
 				esac
 		fi
 } &&
-complete -F _grails grails && echo "Got grails bash"
+complete -F _grails grails
